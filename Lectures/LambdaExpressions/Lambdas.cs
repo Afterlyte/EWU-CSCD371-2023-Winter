@@ -4,7 +4,7 @@ namespace LambdaExpressions;
 [TestClass]
 public class Lambdas
 {
-    private bool text;
+    private readonly bool text = false;
 
     public bool AlphabeticalGreaterThan(string a, int b)
     {
@@ -18,7 +18,7 @@ public class Lambdas
 
     public string[] Sort(Func<string,string, bool> greaterThan, string[] items )
     {
-        return null;
+        return null!;
     }
 
 
