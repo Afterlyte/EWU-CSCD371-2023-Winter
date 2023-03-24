@@ -80,12 +80,12 @@ public class PingProcess
         string hostNameOrAddress, CancellationToken cancellationToken = default)
     {
         StartInfo.Arguments = hostNameOrAddress;
-        StringBuilder stringBuilder = new();
+        StringBuilder? stringBuilder = null;
         void updateStdOutput(string? line) =>
             (stringBuilder ??= new StringBuilder()).AppendLine(line);
-        Task<int> longRunning = RunLongRunningAsync(StartInfo, updateStdOutput, default, default);
+        Task<int> longRunning = RunLongRunningAsync(StartInfo, updateStdOutput, default, cancellationToken);
         await longRunning;
-        return new PingResult(longRunning.Result, stringBuilder.ToString());
+        return new PingResult(longRunning.Result, stringBuilder?.ToString());
     }
 
     async public Task<int> RunLongRunningAsync(ProcessStartInfo startInfo, Action<string?>? progressOutput, Action<string?>? progressError, CancellationToken token)

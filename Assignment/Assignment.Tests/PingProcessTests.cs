@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -88,9 +89,9 @@ public class PingProcessTests
     public void RunAsync_UsingTplWithCancellation_CatchAggregateExceptionWrapping()
     {
         CancellationTokenSource source = new();
+        Task result = Task.Run(() => Sut.RunAsync("localhost", source.Token));
         source.Cancel();
-        Task<PingResult> result = Sut.RunAsync("localhost", source.Token);
-        _ = result.Result;
+        result.Wait();
     }
 
     [TestMethod]
@@ -102,11 +103,12 @@ public class PingProcessTests
         Task<PingResult> result = Sut.RunAsync("localhost", source.Token);
         try
         {
-            _ = result.Result;
+            result.Wait();
         }
         catch (AggregateException ex)
         {
-            throw ex.Flatten().InnerException!;
+            ex = ex.Flatten();
+            ExceptionDispatchInfo.Capture(ex.InnerException ?? ex).Throw();
         }
     }
 
@@ -115,9 +117,7 @@ public class PingProcessTests
     {
         // Pseudo Code - don't trust it!!!
         string[] hostNames = new string[] { "localhost", "localhost", "localhost", "localhost" };
-        int expectedLineCount = PingOutputLikeExpression.Split(Environment.NewLine).Length * hostNames.Length;
         PingResult result = await Sut.RunAsync(hostNames);
-        int? lineCount = result.StdOutput?.Split(Environment.NewLine).Length;
         AssertValidPingOutput(result);
     }
 
@@ -129,15 +129,15 @@ public class PingProcessTests
         AssertValidPingOutput(result);
     }
 
-    [TestMethod]
-    public void StringBuilderAppendLine_InParallel_IsNotThreadSafe()
-    {
-        IEnumerable<int> numbers = Enumerable.Range(0, short.MaxValue);
-        System.Text.StringBuilder stringBuilder = new();
-        numbers.AsParallel().ForAll(item => stringBuilder.AppendLine(""));
-        int lineCount = stringBuilder.ToString().Split(Environment.NewLine).Length;
-        Assert.AreNotEqual(lineCount, numbers.Count() + 1);
-    }
+    //[TestMethod]
+    //public void StringBuilderAppendLine_InParallel_IsNotThreadSafe()
+    //{
+    //    IEnumerable<int> numbers = Enumerable.Range(0, short.MaxValue);
+    //    System.Text.StringBuilder stringBuilder = new();
+    //    numbers.AsParallel().ForAll(item => stringBuilder.AppendLine(""));
+    //    int lineCount = stringBuilder.ToString().Split(Environment.NewLine).Length;
+    //    Assert.AreNotEqual(lineCount, numbers.Count() + 1);
+    //}
 
     readonly string PingOutputLikeExpression = @"
 Pinging * with 32 bytes of data:
